@@ -1,13 +1,14 @@
 'use client'
 
 import Image from 'next/image'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft, ChefHat, Loader2, ShieldCheck, Sparkles } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Toaster, toast } from 'sonner'
+import { dashboardForRole, getAuthSession, signInLocalUser } from '@/lib/auth-session'
 import styles from './login.module.css'
 
 const schema = z.object({ email: z.string().email('Enter a valid email address'), password: z.string().min(6, 'Password must contain at least 6 characters') })
@@ -16,12 +17,25 @@ type LoginInput = z.infer<typeof schema>
 export default function AdminLogin() {
   const router = useRouter()
   const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const { register, handleSubmit, formState: { errors } } = useForm<LoginInput>({ resolver: zodResolver(schema) })
+  useEffect(() => {
+    const session = getAuthSession()
+    if (session) router.replace(dashboardForRole[session.role])
+  }, [router])
+
 
   async function login(values: LoginInput) {
     setSubmitting(true)
-    await new Promise((resolve) => setTimeout(resolve, 450))
-    localStorage.setItem('geces_admin_session', JSON.stringify({ email: values.email, role: 'admin' }))
+    setError(null)
+    const result = signInLocalUser(values.email, values.password)
+    setSubmitting(false)
+    if (result.error || !result.session) { setError(result.error ?? 'Login failed.'); return }
+    if (result.session.role !== 'SUPER_ADMIN') {
+      setError('Access denied. Use the customer or vendor sign-in page for this account.')
+      router.replace(dashboardForRole[result.session.role])
+      return
+    }
     toast.success('Welcome, admin')
     router.replace('/admin/dashboard')
   }
@@ -43,6 +57,7 @@ export default function AdminLogin() {
         <form className={styles.form} onSubmit={handleSubmit(login)}>
           <label><span>Email</span><input type="email" autoComplete="email" placeholder="admin@example.com" {...register('email')}/>{errors.email&&<em>{errors.email.message}</em>}</label>
           <label><span>Password</span><input type="password" autoComplete="current-password" placeholder="••••••••" {...register('password')}/>{errors.password&&<em>{errors.password.message}</em>}</label>
+          {error&&<p className="text-xs text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>}
           <button className={styles.submit} disabled={submitting}>{submitting&&<Loader2 size={16}/>}Sign in</button>
         </form>
         <p className={styles.restricted}>Restricted to authorized GECES administrators.</p>

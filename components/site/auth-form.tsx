@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import { ChefHat, Loader2 } from "lucide-react"
@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { signInWithPassword, signUpWithPassword, signInWithGoogle } from "@/lib/customer-data"
+import { dashboardForRole, getAuthSession } from "@/lib/auth-session"
 
 export function AuthPage() {
   const router = useRouter()
@@ -16,19 +17,25 @@ export function AuthPage() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [name, setName] = useState("")
+  const [accountType, setAccountType] = useState<"CUSTOMER" | "VENDOR">("CUSTOMER")
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const isSignup = mode === "signup"
+
+  useEffect(() => {
+    const session = getAuthSession()
+    if (session) router.replace(dashboardForRole[session.role])
+  }, [router])
 
   async function handleEmail(e: React.FormEvent) {
     e.preventDefault()
     setBusy(true); setError(null)
     const res = isSignup
-      ? await signUpWithPassword(email, password, name)
+      ? await signUpWithPassword(email, password, name, accountType)
       : await signInWithPassword(email, password)
     setBusy(false)
     if (res.error) { setError(res.error); return }
-    router.push("/account")
+    if (res.role) router.replace(dashboardForRole[res.role])
   }
 
   async function handleGoogle() {
@@ -85,10 +92,23 @@ export function AuthPage() {
 
             <form onSubmit={handleEmail} className="space-y-4">
               {isSignup && (
-                <div className="space-y-1.5">
-                  <Label htmlFor="auth-name">Full name</Label>
-                  <Input id="auth-name" required value={name} onChange={(e) => setName(e.target.value)} placeholder="Jane Doe" className="rounded-xl h-11" autoComplete="name" />
-                </div>
+                <>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="auth-name">Full name</Label>
+                    <Input id="auth-name" required value={name} onChange={(e) => setName(e.target.value)} placeholder="Jane Doe" className="rounded-xl h-11" autoComplete="name" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Account type</Label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {(["CUSTOMER", "VENDOR"] as const).map((role) => (
+                        <button key={role} type="button" onClick={() => setAccountType(role)} className={`rounded-xl border px-3 py-2.5 text-xs font-medium transition ${accountType === role ? "border-gold bg-gold/10 text-brown" : "border-border bg-background text-muted-foreground hover:border-gold/50"}`}>
+                          {role === "CUSTOMER" ? "Customer" : "Vendor"}
+                        </button>
+                      ))}
+                    </div>
+                    <p className="text-[10px] text-muted-foreground">Administrator accounts use the separate admin portal.</p>
+                  </div>
+                </>
               )}
               <div className="space-y-1.5">
                 <Label htmlFor="auth-email">Email</Label>
@@ -120,6 +140,8 @@ export function AuthPage() {
 
           <p className="text-center text-xs text-muted-foreground mt-6">
             <Link href="/" className="hover:text-brown transition">← Back to home</Link>
+            <span className="mx-2">·</span>
+            <Link href="/admin/login" className="hover:text-brown transition">Admin portal</Link>
           </p>
         </div>
       </div>

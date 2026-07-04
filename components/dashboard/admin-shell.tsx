@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { BarChart3, Bell, CalendarDays, ChevronDown, FileText, ImageIcon, LayoutDashboard, LogOut, Menu, Package, Settings, ShoppingBag, UserCog, Users, WalletCards, Webhook, X } from 'lucide-react'
 import { Toaster, toast } from 'sonner'
+import { clearAuthSession, getAuthSession } from '@/lib/auth-session'
 
 const links = [
   { href: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -30,20 +31,16 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
-      const stored = localStorage.getItem('geces_admin_session')
-      if (!stored) { router.replace('/admin/login'); return }
-      try {
-        const session = JSON.parse(stored) as { email?: string; role?: string }
-        if (!['admin', 'super-admin'].includes(session.role ?? '')) { localStorage.removeItem('geces_admin_session'); router.replace('/admin/login'); return }
-        if (session.email) setUserEmail(session.email)
-      } catch { localStorage.removeItem('geces_admin_session'); router.replace('/admin/login'); return }
-      setReady(true)
+      const session = getAuthSession()
+      if (!session) { router.replace('/admin/login'); return }
+      if (session.role !== 'SUPER_ADMIN') { router.replace('/sign-in'); return }
+      setUserEmail(session.email); setReady(true)
     }, 0)
     return () => window.clearTimeout(timer)
   }, [router])
 
   function signOut() {
-    localStorage.removeItem('geces_admin_session')
+    clearAuthSession()
     toast.success('Signed out successfully')
     router.replace('/admin/login')
   }

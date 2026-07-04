@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label"
 import { Toaster } from "@/components/ui/sonner"
 import { toast } from "sonner"
 import { getCurrentProfile, updateProfile, signOut, getDashboardStats, type CustomerProfile, type DashboardStats } from "@/lib/customer-data"
+import { dashboardForRole, getAuthSession } from "@/lib/auth-session"
 
 export function DashboardClient() {
   const router = useRouter()
@@ -23,11 +24,14 @@ export function DashboardClient() {
 
   useEffect(() => {
     ;(async () => {
+      const session = getAuthSession()
+      if (!session) { router.replace("/sign-in"); return }
+      if (session.role !== "CUSTOMER") { router.replace(dashboardForRole[session.role]); return }
       const [p, s] = await Promise.all([getCurrentProfile(), getDashboardStats()])
       if (p) { setProfile(p); setFullName(p.fullName ?? ""); setPhone(p.phone ?? "") }
       setStats(s); setLoading(false)
     })()
-  }, [])
+  }, [router])
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault()

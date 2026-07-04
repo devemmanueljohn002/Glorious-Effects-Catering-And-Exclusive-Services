@@ -1,3 +1,5 @@
+import { clearAuthSession, getAuthSession, registerLocalUser, signInLocalUser, updateLocalSession, type UserRole } from "@/lib/auth-session"
+
 // ============================================================================
 // Customer-facing data layer.
 //
@@ -44,38 +46,37 @@ export type DashboardStats = {
 // Auth — replace bodies with real Supabase / API calls.
 // ----------------------------------------------------------------------------
 
-export async function signInWithPassword(_email: string, _password: string): Promise<{ error: string | null }> {
-  // TODO: supabase.auth.signInWithPassword({ email, password })
-  return { error: null }
+export async function signInWithPassword(email: string, password: string): Promise<{ error: string | null; role: UserRole | null }> {
+  const result = signInLocalUser(email, password)
+  return { error: result.error, role: result.session?.role ?? null }
 }
 
 export async function signUpWithPassword(
-  _email: string,
-  _password: string,
-  _fullName: string,
-): Promise<{ error: string | null }> {
-  // TODO: supabase.auth.signUp({ email, password, options: { data: { full_name } } })
-  return { error: null }
+  email: string,
+  password: string,
+  fullName: string,
+  role: "CUSTOMER" | "VENDOR" = "CUSTOMER",
+): Promise<{ error: string | null; role: UserRole | null }> {
+  const result = registerLocalUser({ email, password, fullName, role })
+  return { error: result.error, role: result.session?.role ?? null }
 }
 
 export async function signInWithGoogle(): Promise<{ error: string | null; redirected: boolean }> {
-  // TODO: lovable.auth.signInWithOAuth("google", { redirect_uri })
-  return { error: null, redirected: false }
+  return { error: "Google sign-in will be enabled when the authentication API is connected.", redirected: false }
 }
 
 export async function signOut(): Promise<void> {
-  // TODO: supabase.auth.signOut()
+  clearAuthSession()
 }
 
 export async function getCurrentProfile(): Promise<CustomerProfile | null> {
-  // TODO: read supabase.auth.getUser() + profiles table
-  return null
+  const session = getAuthSession()
+  if (!session) return null
+  return { id: session.id, fullName: session.fullName, email: session.email, phone: "", avatarUrl: null, role: session.role === "SUPER_ADMIN" ? "admin" : session.role === "VENDOR" ? "instructor" : "customer" }
 }
 
-export async function updateProfile(
-  _patch: Partial<Pick<CustomerProfile, "fullName" | "phone">>,
-): Promise<{ error: string | null }> {
-  // TODO: supabase.from("profiles").update(patch).eq("id", userId)
+export async function updateProfile(patch: Partial<Pick<CustomerProfile, "fullName" | "phone">>): Promise<{ error: string | null }> {
+  if (patch.fullName) updateLocalSession({ fullName: patch.fullName })
   return { error: null }
 }
 
