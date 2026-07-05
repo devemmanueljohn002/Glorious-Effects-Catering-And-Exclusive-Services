@@ -127,14 +127,14 @@ Expected result:
 Open a second terminal:
 
 ```powershell
-cd path\to\Glorious-Effects-Catering-And-Exclusive-Services
+cd path\to\Glorious-Effects-Catering-And-Exclusive-Services\frontend
 npm install
 npm run dev
 ```
 
 The frontend runs at `http://localhost:3000` and the backend remains on port `4000`.
 
-The frontend environment should contain:
+Create `frontend/.env.local`. It should contain:
 
 ```env
 NEXT_PUBLIC_API_URL=http://localhost:4000/api/v1
@@ -268,7 +268,7 @@ npm run lint
 npm run build
 ```
 
-Run from the project root:
+Run from `frontend`:
 
 ```powershell
 npm run build

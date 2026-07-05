@@ -1,36 +1,110 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Glorious Effects Catering and Exclusive Services
 
-## Getting Started
+Multi-vendor catering and events marketplace for customers, vendors, and platform administrators.
 
-First, run the development server:
+## Repository structure
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+```text
+Glorious-Effects-Catering-And-Exclusive-Services/
+├── frontend/                  # Next.js customer, vendor and admin interfaces
+│   ├── app/
+│   ├── components/
+│   ├── lib/
+│   ├── public/
+│   └── package.json
+├── backend/                   # Express REST API
+│   ├── prisma/                # Supabase PostgreSQL schema and migrations
+│   ├── src/
+│   ├── docs/
+│   └── package.json
+├── BACKEND_DEVELOPER_GUIDE.md
+└── README.md
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+The two applications are independent deployment units. Each directory has its own dependencies, environment variables, build command, and start command.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Local development
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Backend terminal:
 
-## Learn More
+```powershell
+cd backend
+npm install
+npm run prisma:generate
+npm run db:deploy
+npm run dev
+```
 
-To learn more about Next.js, take a look at the following resources:
+Frontend terminal:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```powershell
+cd frontend
+npm install
+npm run dev
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- Frontend: `http://localhost:3000`
+- Backend API: `http://localhost:4000/api/v1`
+- Swagger: `http://localhost:4000/api-docs`
+- Database health: `http://localhost:4000/api/v1/health`
 
-## Deploy on Vercel
+See [BACKEND_DEVELOPER_GUIDE.md](BACKEND_DEVELOPER_GUIDE.md) for environment setup, Supabase migrations, database inspection, Swagger authorization, and complete role flows.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Deployment
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### Frontend service
+
+Configure the hosting service's root directory as:
+
+```text
+frontend
+```
+
+Build and start commands:
+
+```text
+npm install
+npm run build
+npm start
+```
+
+Required public variable:
+
+```env
+NEXT_PUBLIC_API_URL=https://your-backend-domain.example.com/api/v1
+```
+
+### Backend service
+
+Configure the backend hosting service's root directory as:
+
+```text
+backend
+```
+
+Build command:
+
+```text
+npm install && npm run prisma:generate && npm run build
+```
+
+Start command:
+
+```text
+npm start
+```
+
+Before or during a backend release, apply committed migrations once:
+
+```text
+npm run db:deploy
+```
+
+Configure the private Supabase, JWT, Super Admin, frontend-origin, and API URL variables from `backend/.env.example` in the backend hosting dashboard. Never expose backend secrets through `NEXT_PUBLIC_*` variables.
+
+## Collaboration boundaries
+
+- Customer-side developers work in `frontend/app` and the related customer components.
+- Vendor and Super Admin developers work in the corresponding frontend routes and backend role modules.
+- Backend schema changes must include the Prisma schema and generated migration.
+- Payment-provider integration is deferred and is not part of the current backend.
