@@ -44,7 +44,7 @@ export default function AdminLogin() {
     <section className={styles.story}>
       <div className={styles.storyGlow}/><div className={styles.storyRing}/>
       <div className={styles.brand}><Image src="/geces-logo.jpg" alt="GECES" width={54} height={54}/><div><strong>GECES</strong><span>Catering &amp; Exclusive Services</span></div></div>
-      <div className={styles.storyCopy}><span><Sparkles size={14}/>EXCELLENCE BEHIND EVERY EVENT</span><h1>Where remarkable experiences begin.</h1><p>Manage every booking, payment, menu, customer, and celebration detail from one thoughtful workspace.</p><div className={styles.assurance}><ShieldCheck/><div><strong>Secure administration</strong><span>Restricted access for authorized GECES staff</span></div></div></div>
+      <div className={styles.storyCopy}><span><Sparkles size={14}/>EXCELLENCE BEHIND EVERY EVENT</span><h1>Where remarkable experiences begin.</h1><p>Manage every booking, order, menu, customer, and celebration detail from one thoughtful workspace.</p><div className={styles.assurance}><ShieldCheck/><div><strong>Secure administration</strong><span>Restricted access for authorized GECES staff</span></div></div></div>
       <p className={styles.copyright}>Glorious Effects Catering And Exclusive Services</p>
     </section>
 

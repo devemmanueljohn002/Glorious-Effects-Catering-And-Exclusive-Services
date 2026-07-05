@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { BarChart3, Bell, CalendarDays, ChevronDown, FileText, ImageIcon, LayoutDashboard, LogOut, Menu, Package, Settings, ShoppingBag, UserCog, Users, WalletCards, Webhook, X } from 'lucide-react'
+import { BarChart3, Bell, CalendarDays, ChevronDown, FileText, ImageIcon, LayoutDashboard, LogOut, Menu, Package, Settings, ShoppingBag, UserCog, Users, X } from 'lucide-react'
 import { Toaster, toast } from 'sonner'
 import { clearAuthSession, getAuthSession } from '@/lib/auth-session'
 
@@ -14,8 +14,6 @@ const links = [
   { href: '/admin/menu', label: 'Menu', icon: Package },
   { href: '/admin/gallery', label: 'Gallery', icon: ImageIcon },
   { href: '/admin/orders', label: 'Orders', icon: ShoppingBag },
-  { href: '/admin/payments', label: 'Payment events', icon: WalletCards },
-  { href: '/admin/webhook', label: 'Webhook tester', icon: Webhook },
   { href: '/admin/quotes', label: 'Quotes', icon: FileText },
   { href: '/admin/users', label: 'Users & roles', icon: UserCog },
   { href: '/admin/analytics', label: 'Analytics', icon: BarChart3 },
