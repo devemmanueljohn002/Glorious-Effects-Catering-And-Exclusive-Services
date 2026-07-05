@@ -1,0 +1,328 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum Role {
+  CUSTOMER
+  VENDOR
+  SUPER_ADMIN
+}
+
+enum VendorStatus {
+  PENDING
+  APPROVED
+  SUSPENDED
+  REJECTED
+}
+
+enum BusinessType {
+  CATERER
+  EVENT_PLANNER
+  CAKE_VENDOR
+  DECORATOR
+  MC
+  PHOTOGRAPHER
+}
+
+enum ProductCategory {
+  FOOD
+  CAKE
+  DECORATION
+  MC
+  PHOTOGRAPHY
+  DRINKS
+  SMALL_CHOPS
+}
+
+enum ProductStatus {
+  ACTIVE
+  INACTIVE
+  OUT_OF_STOCK
+}
+
+enum OrderStatus {
+  PENDING
+  ACCEPTED
+  PREPARING
+  COMPLETED
+  CANCELLED
+}
+
+enum TransactionType {
+  COMMISSION
+  PAYOUT
+}
+
+enum TransactionStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  REVERSED
+}
+
+enum WithdrawalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  PAID
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+}
+
+enum QuoteStatus {
+  NEW
+  CONTACTED
+  QUOTED
+  WON
+  LOST
+}
+
+model User {
+  id             String         @id @default(cuid())
+  name           String
+  email          String         @unique
+  passwordHash   String
+  phone          String?
+  role           Role           @default(CUSTOMER)
+  isActive       Boolean        @default(true)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  vendorProfile  VendorProfile?
+  refreshTokens  RefreshToken[]
+  customerOrders Order[]        @relation("CustomerOrders")
+  carts          Cart[]
+  bookings       Booking[]
+  quoteRequests  QuoteRequest[]
+  auditLogs      AuditLog[]      @relation("AuditActor")
+
+  @@index([role, isActive])
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  tokenHash String   @unique
+  userId    String
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([userId, expiresAt])
+}
+
+model VendorProfile {
+  id          String         @id @default(cuid())
+  userId      String         @unique
+  businessName String
+  businessType BusinessType
+  description String?
+  phone       String?
+  address     String?
+  logoUrl     String?
+  status      VendorStatus   @default(PENDING)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  products    Product[]
+  orders      Order[]
+  carts       Cart[]
+  wallet      VendorWallet?
+  withdrawals Withdrawal[]
+  transactions Transaction[]
+  bookings    Booking[]
+  gallery     GalleryItem[]
+
+  @@index([status, businessType])
+}
+
+model Product {
+  id          String          @id @default(cuid())
+  vendorId    String
+  name        String
+  description String?
+  price       Decimal         @db.Decimal(14, 2)
+  category    ProductCategory
+  imageUrl    String?
+  status      ProductStatus   @default(ACTIVE)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  vendor      VendorProfile   @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  cartItems   CartItem[]
+  orderItems  OrderItem[]
+
+  @@index([vendorId, status])
+  @@index([category, status])
+}
+
+model Cart {
+  id         String        @id @default(cuid())
+  customerId String
+  vendorId   String
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+  customer   User          @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  vendor     VendorProfile @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  items      CartItem[]
+  @@unique([customerId, vendorId])
+}
+
+model CartItem {
+  id        String  @id @default(cuid())
+  cartId    String
+  productId String
+  quantity  Int     @default(1)
+  price     Decimal @db.Decimal(14, 2)
+  cart      Cart    @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  @@unique([cartId, productId])
+}
+
+model Order {
+  id            String         @id @default(cuid())
+  customerId    String
+  vendorId      String
+  orderNumber   String         @unique
+  subtotal      Decimal        @db.Decimal(14, 2)
+  platformFee   Decimal        @db.Decimal(14, 2)
+  total         Decimal        @db.Decimal(14, 2)
+  orderStatus   OrderStatus    @default(PENDING)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  customer      User           @relation("CustomerOrders", fields: [customerId], references: [id])
+  vendor        VendorProfile  @relation(fields: [vendorId], references: [id])
+  items         OrderItem[]
+  transactions  Transaction[]
+  @@index([customerId, createdAt])
+  @@index([vendorId, orderStatus])
+}
+
+model OrderItem {
+  id        String  @id @default(cuid())
+  orderId   String
+  productId String
+  name      String
+  quantity  Int
+  price     Decimal @db.Decimal(14, 2)
+  order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product   Product @relation(fields: [productId], references: [id])
+}
+
+model PlatformWallet {
+  id        String   @id @default(cuid())
+  balance   Decimal  @default(0) @db.Decimal(14, 2)
+  updatedAt DateTime @updatedAt
+}
+
+model VendorWallet {
+  id               String        @id @default(cuid())
+  vendorId         String        @unique
+  availableBalance Decimal       @default(0) @db.Decimal(14, 2)
+  pendingBalance   Decimal       @default(0) @db.Decimal(14, 2)
+  lifetimeEarnings Decimal       @default(0) @db.Decimal(14, 2)
+  updatedAt        DateTime      @updatedAt
+  vendor           VendorProfile @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+}
+
+model Transaction {
+  id        String            @id @default(cuid())
+  orderId   String?
+  vendorId  String?
+  amount    Decimal           @db.Decimal(14, 2)
+  type      TransactionType
+  status    TransactionStatus @default(PENDING)
+  reference String?           @unique
+  metadata  Json?
+  createdAt DateTime          @default(now())
+  order     Order?            @relation(fields: [orderId], references: [id])
+  vendor    VendorProfile?    @relation(fields: [vendorId], references: [id])
+  @@index([vendorId, type, status])
+}
+
+model Withdrawal {
+  id            String           @id @default(cuid())
+  vendorId      String
+  amount        Decimal          @db.Decimal(14, 2)
+  bankName      String
+  accountNumber String
+  accountName   String
+  status        WithdrawalStatus @default(PENDING)
+  requestedAt   DateTime         @default(now())
+  processedAt   DateTime?
+  vendor        VendorProfile    @relation(fields: [vendorId], references: [id])
+  @@index([status, requestedAt])
+}
+
+model Booking {
+  id          String        @id @default(cuid())
+  customerId  String
+  vendorId    String?
+  eventType   String
+  eventDate   DateTime
+  guestCount  Int
+  location    String?
+  budget      Decimal?      @db.Decimal(14, 2)
+  details     String?
+  status      BookingStatus @default(PENDING)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  customer    User          @relation(fields: [customerId], references: [id])
+  vendor      VendorProfile? @relation(fields: [vendorId], references: [id])
+}
+
+model QuoteRequest {
+  id           String      @id @default(cuid())
+  customerId   String?
+  customerName String
+  email        String
+  phone        String?
+  eventType    String
+  eventDate    DateTime?
+  guestCount   Int?
+  location     String?
+  budget       Decimal?    @db.Decimal(14, 2)
+  details      String?
+  status       QuoteStatus @default(NEW)
+  adminNotes   String?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  customer     User?       @relation(fields: [customerId], references: [id])
+}
+
+model GalleryItem {
+  id        String         @id @default(cuid())
+  vendorId  String?
+  title     String
+  imageUrl  String
+  category  String?
+  isPublic  Boolean        @default(true)
+  createdAt DateTime       @default(now())
+  vendor    VendorProfile? @relation(fields: [vendorId], references: [id])
+}
+
+model CommissionSetting {
+  id        String   @id @default("default")
+  rate      Decimal  @default(15) @db.Decimal(5, 2)
+  updatedAt DateTime @updatedAt
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  actorId   String?
+  action    String
+  entity    String
+  entityId  String?
+  metadata  Json?
+  createdAt DateTime @default(now())
+  actor     User?    @relation("AuditActor", fields: [actorId], references: [id])
+  @@index([entity, entityId])
+}
